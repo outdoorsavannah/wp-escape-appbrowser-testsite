@@ -43,6 +43,7 @@
 .wpeab-instruction {
   background: rgba(0, 0, 0, 0.85);
   cursor: default;
+  flex-direction: column;
 }
 
 .wpeab-instruction__card {
