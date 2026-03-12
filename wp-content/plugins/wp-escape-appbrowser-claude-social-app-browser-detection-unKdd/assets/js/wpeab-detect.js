@@ -29,15 +29,15 @@
   if (isInstagram && isIOS && wpeabConfig.instagram_ios) {
     route = 'chrome_deeplink_with_safari_overlay'; // iOS Instagram
   } else if (isInstagram && isAndroid && wpeabConfig.instagram_android) {
-    route = 'android_intent_immediate'; // Android Instagram
+    route = wpeabConfig.android_deeplink_mode === 'click_to_open' ? 'android_intent_overlay' : 'android_intent_immediate'; // Android Instagram
   } else if (isFacebook && isIOS && wpeabConfig.facebook_ios) {
     route = 'safari_overlay_only'; // iOS Facebook
   } else if (isFacebook && isAndroid && wpeabConfig.facebook_android) {
-    route = 'android_intent_immediate'; // Android Facebook
+    route = wpeabConfig.android_deeplink_mode === 'click_to_open' ? 'android_intent_overlay' : 'android_intent_immediate'; // Android Facebook
   } else if (isThreads && isIOS && wpeabConfig.threads_ios) {
     route = 'chrome_deeplink_with_safari_overlay'; // iOS Threads
   } else if (isThreads && isAndroid && wpeabConfig.threads_android) {
-    route = 'android_intent_immediate'; // Android Threads
+    route = wpeabConfig.android_deeplink_mode === 'click_to_open' ? 'android_intent_overlay' : 'android_intent_immediate'; // Android Threads
   } else if (isSnapchat && isIOS && wpeabConfig.snapchat_ios) {
     route = 'chrome_deeplink_with_safari_overlay'; // iOS Snapchat
   } else if (isSnapchat && isAndroid && wpeabConfig.snapchat_android) {
@@ -50,6 +50,20 @@
 
   if (!route) {
     return;
+  }
+
+  // --- Frequency gating ---
+  var frequency = wpeabConfig.frequency || 'always';
+  if (frequency === 'once_per_session') {
+    var sessionKey = 'wpeab_fired';
+    try {
+      if (sessionStorage.getItem(sessionKey)) {
+        return;
+      }
+      sessionStorage.setItem(sessionKey, '1');
+    } catch (e) {
+      // sessionStorage unavailable, fall through to always
+    }
   }
 
   var currentUrl = window.location.href;
@@ -108,10 +122,12 @@
     overlay.setAttribute('tabindex', '0');
     overlay.setAttribute('aria-label', 'Tap to open in Safari');
 
-    var hint = document.createElement('div');
-    hint.className = 'wpeab-overlay__hint';
-    hint.textContent = 'Tap anywhere to open in Safari';
-    overlay.appendChild(hint);
+    if (wpeabConfig.show_toast_hint) {
+      var hint = document.createElement('div');
+      hint.className = 'wpeab-overlay__hint';
+      hint.textContent = 'Tap anywhere to open in Safari';
+      overlay.appendChild(hint);
+    }
 
     overlay.addEventListener('click', function (e) {
       e.preventDefault();
@@ -133,10 +149,12 @@
     overlay.setAttribute('tabindex', '0');
     overlay.setAttribute('aria-label', 'Tap to open in your browser');
 
-    var hint = document.createElement('div');
-    hint.className = 'wpeab-overlay__hint';
-    hint.textContent = 'Tap anywhere to open in your browser';
-    overlay.appendChild(hint);
+    if (wpeabConfig.show_toast_hint) {
+      var hint = document.createElement('div');
+      hint.className = 'wpeab-overlay__hint';
+      hint.textContent = 'Tap anywhere to open in your browser';
+      overlay.appendChild(hint);
+    }
 
     overlay.addEventListener('click', function (e) {
       e.preventDefault();
