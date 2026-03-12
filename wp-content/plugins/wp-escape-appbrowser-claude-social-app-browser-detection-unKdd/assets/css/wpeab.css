@@ -1,0 +1,141 @@
+/* ============================================
+   WP Escape App Browser - Front-end Styles
+   ============================================ */
+
+/* --- Shared overlay base --- */
+.wpeab-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Transparent click-overlay (iOS Safari / Android Intent) --- */
+.wpeab-overlay--transparent {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.wpeab-overlay__hint {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 28px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: wpeab-fade-in 0.3s ease-out, wpeab-pulse 2s ease-in-out 1s infinite;
+}
+
+/* --- Instruction screen overlay (TikTok, Snapchat Android) --- */
+.wpeab-instruction {
+  background: rgba(0, 0, 0, 0.85);
+  cursor: default;
+}
+
+.wpeab-instruction__card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 40px 32px;
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: wpeab-slide-up 0.4s ease-out;
+}
+
+.wpeab-instruction__icon {
+  color: #007AFF;
+  margin-bottom: 16px;
+}
+
+.wpeab-instruction__title {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 24px 0;
+}
+
+.wpeab-instruction__steps {
+  text-align: left;
+}
+
+.wpeab-instruction__step {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #333;
+}
+
+.wpeab-instruction__step:last-child {
+  margin-bottom: 0;
+}
+
+.wpeab-instruction__step-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #007AFF;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  margin-top: 1px;
+}
+
+.wpeab-instruction__step-text {
+  flex: 1;
+  padding-top: 3px;
+}
+
+/* --- Animations --- */
+@keyframes wpeab-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes wpeab-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes wpeab-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
