@@ -5,95 +5,96 @@
     return;
   }
 
-  var ua = navigator.userAgent || '';
-
-  // --- Platform detection ---
-  var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  var isAndroid = /Android/i.test(ua);
-
-  // --- App browser detection ---
-  // Instagram: contains "Instagram" in UA
-  var isInstagram = /Instagram/i.test(ua);
-  // Facebook: contains "FBAN" or "FBAV" in UA
-  var isFacebook = /FBAN|FBAV/i.test(ua);
-  // Threads: contains "Barcelona" in UA (Threads internal codename)
-  var isThreads = /Barcelona/i.test(ua);
-  // Snapchat: contains "Snapchat" in UA
-  var isSnapchat = /Snapchat/i.test(ua);
-  // TikTok: contains "TikTok" or "BytedanceWebview" or "musical_ly" in UA
-  var isTikTok = /TikTok|BytedanceWebview|musical_ly/i.test(ua);
-
-  // --- Determine which route to take ---
-  var route = null;
-
-  if (isInstagram && isIOS && wpeabConfig.instagram_ios) {
-    route = 'chrome_deeplink_with_safari_overlay'; // iOS Instagram
-  } else if (isInstagram && isAndroid && wpeabConfig.instagram_android) {
-    route = wpeabConfig.android_deeplink_mode === 'click_to_open' ? 'android_intent_overlay' : 'android_intent_immediate'; // Android Instagram
-  } else if (isFacebook && isIOS && wpeabConfig.facebook_ios) {
-    route = 'safari_overlay_only'; // iOS Facebook
-  } else if (isFacebook && isAndroid && wpeabConfig.facebook_android) {
-    route = wpeabConfig.android_deeplink_mode === 'click_to_open' ? 'android_intent_overlay' : 'android_intent_immediate'; // Android Facebook
-  } else if (isThreads && isIOS && wpeabConfig.threads_ios) {
-    route = 'chrome_deeplink_with_safari_overlay'; // iOS Threads
-  } else if (isThreads && isAndroid && wpeabConfig.threads_android) {
-    route = wpeabConfig.android_deeplink_mode === 'click_to_open' ? 'android_intent_overlay' : 'android_intent_immediate'; // Android Threads
-  } else if (isSnapchat && isIOS && wpeabConfig.snapchat_ios) {
-    route = 'chrome_deeplink_with_safari_overlay'; // iOS Snapchat
-  } else if (isSnapchat && isAndroid && wpeabConfig.snapchat_android) {
-    route = 'instruction_screen'; // Android Snapchat
-  } else if (isTikTok && isIOS && wpeabConfig.tiktok_ios) {
-    route = 'instruction_screen'; // iOS TikTok
-  } else if (isTikTok && isAndroid && wpeabConfig.tiktok_android) {
-    route = 'instruction_screen'; // Android TikTok
-  }
-
-  if (!route) {
-    return;
-  }
+  var config = wpeabConfig;
+  var settings = config.settings || {};
 
   // --- Frequency gating ---
-  var frequency = wpeabConfig.frequency || 'always';
+  var frequency = config.frequency || 'always';
   if (frequency === 'once_per_session') {
-    var sessionKey = 'wpeab_fired';
+    var sessionKey = config.session_key || 'wpeab_fired';
     try {
       if (sessionStorage.getItem(sessionKey)) {
         return;
       }
-      sessionStorage.setItem(sessionKey, '1');
     } catch (e) {
       // sessionStorage unavailable, fall through to always
     }
   }
 
+  // --- Client-side detection ---
+  var ua = navigator.userAgent;
+  if (!ua) return;
+
+  var isIOS = /iPhone|iPad|iPod/i.test(ua);
+  var isAndroid = /Android/i.test(ua);
+  if (!isIOS && !isAndroid) return;
+
+  var isInstagram = /Instagram/i.test(ua);
+  var isFacebook = /FBAN|FBAV|FB_IAB/i.test(ua);
+  var isThreads = /Barcelona/i.test(ua);
+  var isSnapchat = /Snapchat/i.test(ua);
+  var isTikTok = /musical_ly|TikTok|BytedanceWebview|ByteLocale/i.test(ua);
+
+  var androidMode = settings.android_deeplink_mode === 'click_to_open'
+    ? 'android_intent_overlay'
+    : 'android_intent_immediate';
+
+  var route = null;
+
+  if (isInstagram && isIOS && settings.instagram_ios !== '0') {
+    route = 'chrome_deeplink_with_safari_overlay';
+  } else if (isInstagram && isAndroid && settings.instagram_android !== '0') {
+    route = androidMode;
+  } else if (isFacebook && isIOS && settings.facebook_ios !== '0') {
+    route = 'safari_overlay_only';
+  } else if (isFacebook && isAndroid && settings.facebook_android !== '0') {
+    route = androidMode;
+  } else if (isThreads && isIOS && settings.threads_ios !== '0') {
+    route = 'chrome_deeplink_with_safari_overlay';
+  } else if (isThreads && isAndroid && settings.threads_android !== '0') {
+    route = androidMode;
+  } else if (isSnapchat && isIOS && settings.snapchat_ios !== '0') {
+    route = 'chrome_deeplink_with_safari_overlay';
+  } else if (isSnapchat && isAndroid && settings.snapchat_android !== '0') {
+    route = 'instruction_screen';
+  } else if (isTikTok && isIOS && settings.tiktok_ios !== '0') {
+    route = 'instruction_screen';
+  } else if (isTikTok && isAndroid && settings.tiktok_android !== '0') {
+    route = 'instruction_screen';
+  }
+
+  if (!route) return;
+
+  // Mark session after successful route match.
+  if (frequency === 'once_per_session') {
+    try {
+      sessionStorage.setItem(config.session_key || 'wpeab_fired', '1');
+    } catch (e) {}
+  }
+
   var currentUrl = window.location.href;
   var path = window.location.pathname + window.location.search + window.location.hash;
 
-  // --- Route handlers ---
-
   if (route === 'chrome_deeplink_with_safari_overlay') {
-    // Immediately attempt Chrome deeplink
     var chromeUrl = 'googlechrome://' + window.location.host + path;
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
         window.location.href = chromeUrl;
       });
     });
-
-    // Also show transparent overlay for Safari fallback (for users without Chrome)
-    showSafariOverlay();
+    showSafariOverlay(path);
   }
 
   if (route === 'safari_overlay_only') {
-    showSafariOverlay();
+    showSafariOverlay(path);
   }
 
   if (route === 'android_intent_immediate') {
-    fireAndroidIntent();
+    fireAndroidIntent(currentUrl);
   }
 
   if (route === 'android_intent_overlay') {
-    showAndroidIntentOverlay();
+    showAndroidIntentOverlay(currentUrl);
   }
 
   if (route === 'instruction_screen') {
@@ -102,7 +103,7 @@
 
   // --- UI builders ---
 
-  function fireAndroidIntent() {
+  function fireAndroidIntent(currentUrl) {
     var intentUrl = 'intent://' + currentUrl.replace(/^https?:\/\//, '') +
       '#Intent;scheme=https;action=android.intent.action.VIEW;S.browser_fallback_url=' +
       encodeURIComponent(currentUrl) + ';end';
@@ -113,7 +114,7 @@
     });
   }
 
-  function showSafariOverlay() {
+  function showSafariOverlay(path) {
     var safariUrl = 'x-safari-https://' + window.location.host + path;
 
     var overlay = document.createElement('div');
@@ -122,7 +123,7 @@
     overlay.setAttribute('tabindex', '0');
     overlay.setAttribute('aria-label', 'Tap to open in Safari');
 
-    if (wpeabConfig.show_toast_hint) {
+    if (config.show_toast_hint) {
       var hint = document.createElement('div');
       hint.className = 'wpeab-overlay__hint';
       hint.textContent = 'Tap anywhere to open in Safari';
@@ -137,11 +138,10 @@
     document.body.appendChild(overlay);
   }
 
-  function showAndroidIntentOverlay() {
-    var buttonUrl = currentUrl;
-    var intentUrl = 'intent://' + buttonUrl.replace(/^https?:\/\//, '') +
+  function showAndroidIntentOverlay(currentUrl) {
+    var intentUrl = 'intent://' + currentUrl.replace(/^https?:\/\//, '') +
       '#Intent;scheme=https;action=android.intent.action.VIEW;S.browser_fallback_url=' +
-      encodeURIComponent(buttonUrl) + ';end';
+      encodeURIComponent(currentUrl) + ';end';
 
     var overlay = document.createElement('div');
     overlay.className = 'wpeab-overlay wpeab-overlay--transparent';
@@ -149,7 +149,7 @@
     overlay.setAttribute('tabindex', '0');
     overlay.setAttribute('aria-label', 'Tap to open in your browser');
 
-    if (wpeabConfig.show_toast_hint) {
+    if (config.show_toast_hint) {
       var hint = document.createElement('div');
       hint.className = 'wpeab-overlay__hint';
       hint.textContent = 'Tap anywhere to open in your browser';
